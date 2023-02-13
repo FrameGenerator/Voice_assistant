@@ -3,10 +3,10 @@ import Vosproizvedenie_RU
 import Phrase
 import Phrase_to_cmd
 
+
 Vosproizvedenie_RU.speak('Привет, готова к работе')
 last_cmd = ''
 text_start = ''
-
 command_dict = {
     'time': lambda: Phrase_to_cmd.times(),
     'all': lambda: Phrase_to_cmd.open_close_all(text_start),
@@ -28,14 +28,11 @@ def data():
     global last_cmd, text_start
     text_start = Raspoznavanie_RU.record()
     cmd = Phrase.cmd_phrase(text_start)
-
     if cmd == 'for_last_cmd':
         cmd = Phrase.cmd_phrase(' '.join(reversed(text_start.split())))
         if last_cmd == 'music':
             cmd = 'music'
-
     last_cmd = cmd
-
     if cmd is None:
         if not str(text_start[0].encode())[2].isalpha():
             Vosproizvedenie_RU.speak(text_start)
