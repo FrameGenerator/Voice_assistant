@@ -28,6 +28,7 @@ def data():
     global last_cmd, text_start
     text_start = Raspoznavanie_RU.record()
     cmd = Phrase.cmd_phrase(text_start)
+    print(cmd)
     if cmd == 'for_last_cmd':
         cmd = Phrase.cmd_phrase(' '.join(reversed(text_start.split())))
         if last_cmd == 'music':
