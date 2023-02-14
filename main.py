@@ -27,6 +27,7 @@ command_dict = {
 def data():
     global last_cmd, text_start
     text_start = Raspoznavanie_RU.record()
+    print(text_start)
     cmd = Phrase.cmd_phrase(text_start)
     if cmd == 'for_last_cmd':
         cmd = Phrase.cmd_phrase(' '.join(reversed(text_start.split())))
