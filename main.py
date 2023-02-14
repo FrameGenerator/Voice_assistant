@@ -30,8 +30,6 @@ def data():
     print(text_start)
     cmd = Phrase.cmd_phrase(text_start)
     print(cmd)
-    print(text_start)
-    print(text_start)
     if cmd == 'for_last_cmd':
         cmd = Phrase.cmd_phrase(' '.join(reversed(text_start.split())))
         if last_cmd == 'music':
