@@ -1,8 +1,8 @@
 import sys
 import Phrase
 import Raspoznavanie_RU
-import Raspoznavanie_EN
 import Vosproizvedenie_RU
+import Raspoznavanie_EN
 import Vosproizvedenie_EN
 import Raspoznavanie_both
 import keyboard
@@ -18,6 +18,8 @@ import pyautogui
 from num2t4ru import num2text
 from datetime import datetime
 from googletrans import Translator
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import comtypes
 
 
 def get_program_hwnd_path(file_name):
@@ -255,3 +257,31 @@ def translate(text):
         Vosproizvedenie_RU.speak('обычный режим')
     else:
         Vosproizvedenie_RU.speak('какой режим работы?')
+
+
+def sound_volume(text):
+    devices = AudioUtilities.GetSpeakers()
+    interface = devices.Activate(
+        IAudioEndpointVolume._iid_,
+        comtypes.CLSCTX_ALL,
+        None
+    )
+    volume = interface.QueryInterface(IAudioEndpointVolume)
+    current_volume = volume.GetMasterVolumeLevelScalar()
+
+    if 'down' == Phrase.for_sound_volume(text) and current_volume >= 0.1:
+        volume.SetMasterVolumeLevelScalar(current_volume - 0.1, None)
+    elif 'up' == Phrase.for_sound_volume(text) and current_volume <= 0.9:
+        volume.SetMasterVolumeLevelScalar(current_volume + 0.1, None)
+    elif 'change' == Phrase.for_sound_volume(text):
+        sound_level = {'один': 0.1, 'два': 0.2, 'три': 0.3, 'четыре': 0.4, 'пять': 0.5,
+                       'шесть': 0.6, 'семь': 0.7, 'восемь': 0.8, 'девять': 0.9, 'десять': 1}
+        def level_sound(txt):
+            for i in sound_level:
+                if i in txt:
+                    return sound_level[i]
+            return current_volume
+        volume.SetMasterVolumeLevelScalar(level_sound(text), None)
+    else: Vosproizvedenie_RU.speak('не поняла')
+
+

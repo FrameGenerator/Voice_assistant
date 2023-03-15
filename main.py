@@ -18,9 +18,10 @@ command_dict = {
     'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),
     'program': lambda: Phrase_to_cmd.open_close_program(text_start),  # winamp, BattleNet, Steam, osu, chrome
     'folder': lambda: Phrase_to_cmd.open_folder(text_start),  # Only Desktop
-    'for_last_cmd': lambda: Vosproizvedenie_RU.speak(text_start),  # music
     'press': lambda: Phrase_to_cmd.button(text_start),  # Enter
-    'translate': lambda: Phrase_to_cmd.translate(text_start)
+    'translate': lambda: Phrase_to_cmd.translate(text_start),
+    'sound_level': lambda: Phrase_to_cmd.sound_volume(text_start),
+    'for_last_cmd': lambda: Vosproizvedenie_RU.speak(text_start),  # music
 }
 
 
@@ -34,6 +35,8 @@ def data():
         cmd = Phrase.cmd_phrase(' '.join(reversed(text_start.split())))
         if last_cmd == 'music':
             cmd = 'music'
+        if last_cmd == 'sound_level':
+            cmd = 'sound_level'
     last_cmd = cmd
     if cmd is None:
         if not str(text_start[0].encode())[2].isalpha():

@@ -20,8 +20,9 @@ def cmd_phrase(text):
         'press': {'нажмите', 'нажми', 'жми', 'зажми'},
         'translate': {'переводится', 'переведи', 'перевод', 'означает', 'перевести',
                       'сказать', 'перевода', 'режим'},
+        'sound_level': {'звук', 'громкость', 'звуков', 'круг', 'бог', 'громкости'},
         'for_last_cmd': for_last_cmd,
-        'program': name_programs('all'),
+        'program': name_programs('all')
     }
     return get_cmd(text, data_phrase)
 
@@ -115,6 +116,17 @@ def for_tab(text):
         'reestablish': {'останови', 'установи', 'восстановить', 'верни', 'вернее', 'верхний'}
     }
     return get_cmd(text, data_tab)
+
+
+def for_sound_volume(text):
+    data_volume = {
+        'down': {'уменьши', 'уменьшить', 'меньше', ''},
+        'up': {'увеличь', 'увеличить', 'больше'},
+        'change': {'установи', 'поставь', 'сделай'}
+    }
+    global for_last_cmd
+    for_last_cmd = {j for k in [data_volume[i] for i in data_volume] for j in k}
+    return get_cmd(text, data_volume)
 
 
 for_last_cmd = set()

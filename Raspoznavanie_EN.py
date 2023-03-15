@@ -27,3 +27,5 @@ def record():
                 if len(raw_text[14:-3]) > 0:
                     if raw_text[14:-3] not in ['by', 'but', 'be', 'huh']:
                         return raw_text[14:-3]
+
+
