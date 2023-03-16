@@ -9,7 +9,8 @@ def get_cmd(text_start, data_words):
 def cmd_phrase(text):
     data_phrase = {
         'time': {'время', 'времени', 'часов', 'час'},
-        'wait_or_end': {'выключись', 'выключиться', 'выключи', 'отключись', 'отключи', 'закройся'},
+        'wait_or_end': {'выключись', 'выключиться', 'выключи', 'отключись', 'отключи',
+                        'закройся'},
         'write': {'напиши', 'запиши', 'спроси', 'набери', 'опиши', 'пиши'},
         'tab': {'вкладку', 'кладку', 'вклад', 'вкладка', 'вкладках', 'хватку'},
         'music': {'музыку', 'музыка', 'музычку', 'песню', 'песня', 'песенку',
@@ -20,7 +21,8 @@ def cmd_phrase(text):
         'press': {'нажмите', 'нажми', 'жми', 'зажми'},
         'translate': {'переводится', 'переведи', 'перевод', 'означает', 'перевести',
                       'сказать', 'перевода', 'режим'},
-        'sound_level': {'звук', 'громкость', 'звуков', 'круг', 'бог', 'громкости'},
+        'sound_level': {'звук', 'громкость', 'звуков', 'круг', 'бог', 'громкости',
+                        'звука'},
         'for_last_cmd': for_last_cmd,
         'program': name_programs('all')
     }
@@ -66,7 +68,9 @@ def name_programs(text):
         'Steam': {'ним', 'сидим', 'чтим', 'тим', 'систем', 'стин', 'стиль', 'остин', 'стимул', 'стивен',
                   'вести'},
         'chrome': {'браузер', 'браузера', 'браузеров', 'браузером', 'браузере', 'градусов', 'браузерах', 'фронт', 'хром'
-                   }
+                   },
+        'pycharm': {'чарм', 'чарам', 'чан', 'чар', 'плечами', 'чарли', 'чат',
+                    'чарам', 'плечам', 'пальчиком', 'чаем', 'вечером'}
 
     }
     if text == 'all':
@@ -79,7 +83,7 @@ def for_open_close_program(text):
         'open': {'открой', 'запусти', 'включи', 'откройте'},
         'close': {'закрой'},
         'forward': {'покажи', 'закажи', 'покажите', 'зверни', 'разверни'},
-        'minimize': {'сверни', 'вернее'}
+        'minimize': {'сверни', 'вернее', 'заверни'}
     }
     return get_cmd(text, data_cmd_program)
 
@@ -90,7 +94,8 @@ def program_path(text):
         'Battle.net': 'C:\Program Files (x86)\Battle.net\Battle.net.exe',
         'osu!': r'C:\Users\user\AppData\Local\osu!\osu!.exe',
         'Steam': 'C:\Program Files (x86)\Steam\steam.exe',
-        'chrome': 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+        'chrome': 'C:\Program Files\Google\Chrome\Application\chrome.exe',
+        'pycharm': 'C:\\Program Files\\JetBrains\\PyCharm Community Edition 2022.3.3\\bin\pycharm64.exe'
     }
     return data_program_path[text]
 
@@ -122,7 +127,7 @@ def for_sound_volume(text):
     data_volume = {
         'down': {'уменьши', 'уменьшить', 'меньше', ''},
         'up': {'увеличь', 'увеличить', 'больше'},
-        'change': {'установи', 'поставь', 'сделай'}
+        'change': {'установи', 'поставь', 'сделай', 'уровень'}
     }
     global for_last_cmd
     for_last_cmd = {j for k in [data_volume[i] for i in data_volume] for j in k}
