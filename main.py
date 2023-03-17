@@ -15,7 +15,7 @@ command_dict = {
     'google': lambda: Phrase_to_cmd.open_google(),
     'music': lambda: Phrase_to_cmd.music(text_start),
     'wait_or_end': lambda: Phrase_to_cmd.wait_or_end(text_start),
-    'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),
+    'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),  #maximezed winamp, pycharm_windows
     'program': lambda: Phrase_to_cmd.open_close_program(text_start),  # winamp, BattleNet, Steam, osu, chrome
     'folder': lambda: Phrase_to_cmd.open_folder(text_start),  # Only Desktop
     'press': lambda: Phrase_to_cmd.button(text_start),  # Enter

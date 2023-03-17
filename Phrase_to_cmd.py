@@ -62,8 +62,8 @@ def window_forward(file_name):  # вывод окна на передний пл
 def times():
     print(str(datetime.now().time())[:5])
     Vosproizvedenie_RU.speak('Сейчас' + ' ' + num2text(datetime.now().hour) + ' ' +
-                          num2text(datetime.now().minute)
-                          )
+                             num2text(datetime.now().minute)
+                             )
 
 
 def my_keyboard(text_for):
@@ -117,11 +117,19 @@ def music(text_for):
 
 
 def open_close_all(text_for):
-    if 'open_close_all' == Phrase.for_open_close_all(text_for):
+    if 'minimize' == Phrase.for_open_close_all(text_for) or \
+            'open' == Phrase.for_open_close_all(text_for):
         tmp = pyautogui.position()
         pyautogui.click(1918, 1078)
         pyautogui.moveTo(tmp)
         time.sleep(0.5)
+    elif 'close' == Phrase.for_open_close_all(text_for):
+        if len(Phrase.cmd_phrase('for_open_close_all') - set(text_for.split())) < \
+                len(Phrase.cmd_phrase('for_open_close_all')):
+            for i in get_program_hwnd_path('explorer'):
+                if len(i[3]) > 0 and i[3] != 'Пуск' and i[3] != 'Program Manager':
+                    win32gui.PostMessage(i[1], win32con.WM_CLOSE, 0, 0)
+
     else:
         Vosproizvedenie_RU.speak(text_for)
 
@@ -194,7 +202,6 @@ def open_folder(text_for):
     elif cmd == 'close':
         print(text_for.split()[-1])
         folder = get_program_hwnd_path(text_for.split()[-1])
-        print(folder)
         if folder[0][0] != 'процесс не запущен':
             win32gui.PostMessage(folder[0][1], win32con.WM_CLOSE, 0, 0)
 
@@ -276,12 +283,13 @@ def sound_volume(text):
     elif 'change' == Phrase.for_sound_volume(text):
         sound_level = {'один': 0.1, 'два': 0.2, 'три': 0.3, 'четыре': 0.4, 'пять': 0.5,
                        'шесть': 0.6, 'семь': 0.7, 'восемь': 0.8, 'девять': 0.9, 'десять': 1}
+
         def level_sound(txt):
             for i in sound_level:
                 if i in txt:
                     return sound_level[i]
             return current_volume
+
         volume.SetMasterVolumeLevelScalar(level_sound(text), None)
-    else: Vosproizvedenie_RU.speak('не поняла')
-
-
+    else:
+        Vosproizvedenie_RU.speak('не поняла')
