@@ -33,18 +33,18 @@ def get_program_hwnd_path(file_name):
                     win32gui.GetWindowText(hwnd).lower() == file_name:
                 find_proc.append([proc_path.split('\\')[-1][:-4], hwnd, proc_path,
                                   win32gui.GetWindowText(hwnd)])
-
     find_proc = []
     win32gui.EnumWindows(wins, None)
     print(find_proc)
     if len(find_proc) > 0:
-        if find_proc[0][3] == 'Редактор списка воспроизведения Winamp':
-            find_proc.pop(0)
-            print('удаление не главных окон винампа из списка')
+        find_proc = [i for i in find_proc if i[3] != 'Редактор списка воспроизведения Winamp'
+                     and len(i[3]) > 0]
+        print(find_proc)
+        print('удаление не главных окон из списка')
         return find_proc
     else:
-        return [['процесс не запущен', win32gui.GetForegroundWindow(), '']]
-
+        return [['процесс не запущен', win32gui.GetForegroundWindow(), '', 'процесс не запущен']]
+# /\/\/\ здесь может что-то сломаться
 
 def window_forward(file_name):  # вывод окна на передний план
     tmp = get_program_hwnd_path(file_name)
@@ -72,7 +72,6 @@ def my_keyboard(text_for):
 
 
 def tab(text_for):
-    t = win32gui.GetForegroundWindow()
     window_forward('chrome')
     if 'close' == Phrase.for_tab(text_for):
         keyboard.send('Ctrl+w')
@@ -80,7 +79,6 @@ def tab(text_for):
     elif 'reestablish' == Phrase.for_tab(text_for):
         keyboard.send('Ctrl + Shift + T')
         Vosproizvedenie_RU.speak('вернула')
-    win32gui.SetForegroundWindow(t)
 
 
 def open_google():
@@ -129,6 +127,13 @@ def open_close_all(text_for):
             for i in get_program_hwnd_path('explorer'):
                 if len(i[3]) > 0 and i[3] != 'Пуск' and i[3] != 'Program Manager':
                     win32gui.PostMessage(i[1], win32con.WM_CLOSE, 0, 0)
+                    Vosproizvedenie_RU.speak('закрыла папки')
+        if 'программы' in text_for.split():
+            Vosproizvedenie_RU.speak('закрываю программы')
+            for progr in Phrase.name_programs('all_programs'):
+                for proc in psutil.process_iter():
+                    if proc.name() == progr + '.exe':
+                        proc.kill()
 
     else:
         Vosproizvedenie_RU.speak(text_for)
@@ -165,16 +170,17 @@ def open_close_program(prog):
         else:
             os.startfile(Phrase.program_path(program))
             Vosproizvedenie_RU.speak('открываю')
-            k = 0
-            while program + '.exe' not in [i.name() for i in psutil.process_iter()]:
-                time.sleep(1)
-                k += 1
-                if k > 10:
-                    Vosproizvedenie_RU.speak('очень долго запускается')
-                    break
-            if program == 'chrome' and get_program_hwnd_path(program)[0][3] == 'Восстановить страницы?':
-                window_forward('chrome')
-                button('интер')
+            if program == 'chrome':
+                while get_program_hwnd_path('chrome')[0][3] == \
+                    'процесс не запущен' or \
+                    get_program_hwnd_path('chrome')[0][3] == \
+                    'Новая вкладка - Google Chrome':
+                        print(get_program_hwnd_path('chrome'), '3')
+                        time.sleep(1)
+                if get_program_hwnd_path('chrome')[0][3] == 'Восстановить страницы?':
+                    # window_forward('chrome')
+                    keyboard.send('Enter')
+
     elif 'close' == Phrase.for_open_close_program(prog):
         Vosproizvedenie_RU.speak('закрываю')
         for i in psutil.process_iter():

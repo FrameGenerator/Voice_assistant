@@ -16,6 +16,7 @@ model.to(torch.device('cpu'))
 
 
 def speak(text):
+    text = ' '.join(['ссемь' if i == 'семь' else i for i in text.split()])
     audio = model.apply_tts(text=text + '!',
                             speaker=speaker,
                             sample_rate=sample_rate,
@@ -25,3 +26,4 @@ def speak(text):
     sd.play(audio, sample_rate)
     time.sleep(len(audio) / sample_rate)
     sd.stop()
+
