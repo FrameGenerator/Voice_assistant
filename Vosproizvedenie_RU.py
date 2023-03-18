@@ -6,6 +6,7 @@ language = 'ru'
 model_id = 'ru_v3'
 sample_rate = 48000
 speaker = 'baya'  # aidar, baya, kseniya, xenia, random
+silent_mode = False
 
 model, i = torch.hub.load(repo_or_dir='snakers4/silero-models',
                           model='silero_tts',
@@ -15,7 +16,16 @@ model, i = torch.hub.load(repo_or_dir='snakers4/silero-models',
 model.to(torch.device('cpu'))
 
 
+def for_silent_mode():
+    global silent_mode
+    speak('тихий режим')
+    silent_mode = not silent_mode
+    speak('да')
+
+
 def speak(text):
+    if silent_mode:
+        return
     text = ' '.join(['ссемь' if i == 'семь' else i for i in text.split()])
     audio = model.apply_tts(text=text + '!',
                             speaker=speaker,

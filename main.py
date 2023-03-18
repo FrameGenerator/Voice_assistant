@@ -15,13 +15,14 @@ command_dict = {
     'google': lambda: Phrase_to_cmd.open_google(),
     'music': lambda: Phrase_to_cmd.music(text_start),
     'wait_or_end': lambda: Phrase_to_cmd.wait_or_end(text_start),
-    'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),  #maximezed winamp, pycharm_windows
+    'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),
     'program': lambda: Phrase_to_cmd.open_close_program(text_start),  # winamp, BattleNet, Steam, osu, chrome
     'folder': lambda: Phrase_to_cmd.open_folder(text_start),  # Only Desktop
     'press': lambda: Phrase_to_cmd.button(text_start),  # Enter
     'translate': lambda: Phrase_to_cmd.translate(text_start),
     'sound_level': lambda: Phrase_to_cmd.sound_volume(text_start),
     'for_last_cmd': lambda: Vosproizvedenie_RU.speak(text_start),  # music
+    'silent_mode': lambda: Vosproizvedenie_RU.for_silent_mode()
 }
 
 

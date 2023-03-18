@@ -269,7 +269,7 @@ def translate(text):
                 Vosproizvedenie_EN.speak(temp.text)
         Vosproizvedenie_RU.speak('обычный режим')
     else:
-        Vosproizvedenie_RU.speak('какой режим работы?')
+        Vosproizvedenie_RU.speak('какой режим?')
 
 
 def sound_volume(text):
