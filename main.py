@@ -11,13 +11,14 @@ command_dict = {
     'time': lambda: Phrase_to_cmd.times(),
     'all': lambda: Phrase_to_cmd.open_close_all(text_start),
     'tab': lambda: Phrase_to_cmd.tab(text_start),
-    'write': lambda: Phrase_to_cmd.my_keyboard(text_start),
+    'write': lambda: Phrase_to_cmd.write(text_start),
     'google': lambda: Phrase_to_cmd.open_google(),
     'music': lambda: Phrase_to_cmd.music(text_start),
     'wait_or_end': lambda: Phrase_to_cmd.wait_or_end(text_start),
     'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),
     'program': lambda: Phrase_to_cmd.open_close_program(text_start),  # winamp, BattleNet, Steam, osu, chrome
-    'folder': lambda: Phrase_to_cmd.open_folder(text_start),  # Only Desktop
+    'folder': lambda: Phrase_to_cmd.open_folder(text_start, 'folder'),  # Only Desktop
+    'disk': lambda: Phrase_to_cmd.open_folder(text_start, 'disk'),
     'press': lambda: Phrase_to_cmd.button(text_start),  # Enter
     'translate': lambda: Phrase_to_cmd.translate(text_start),
     'sound_level': lambda: Phrase_to_cmd.sound_volume(text_start),

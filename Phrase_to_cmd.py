@@ -66,8 +66,8 @@ def times():
                              )
 
 
-def my_keyboard(text_for):
-    keyboard.write(text_for[7:])
+def write(text_for):
+    keyboard.write(' '.join(text_for.split()[1:]))
     Vosproizvedenie_RU.speak('написала')
 
 
@@ -127,7 +127,6 @@ def open_close_all(text_for):
             for i in get_program_hwnd_path('explorer'):
                 if len(i[3]) > 0 and i[3] != 'Пуск' and i[3] != 'Program Manager':
                     win32gui.PostMessage(i[1], win32con.WM_CLOSE, 0, 0)
-                    Vosproizvedenie_RU.speak('закрыла папки')
         if 'программы' in text_for.split():
             Vosproizvedenie_RU.speak('закрываю программы')
             for progr in Phrase.name_programs('all_programs'):
@@ -195,21 +194,23 @@ def open_close_program(prog):
         Vosproizvedenie_RU.speak('не поняла команду')
 
 
-def open_folder(text_for):
+def open_folder(text_for, disk_or_folder):
     desktop = os.listdir(path=r'C:\Users\user\Desktop')
     cmd = Phrase.for_open_close_program(text_for)
     if cmd == 'open':
-        if 'диск' in text_for.split():
-            os.startfile('C:\\')
+        if disk_or_folder == 'disk':
+            try:
+                os.startfile(Phrase.for_folders(text_for) + ':\\')
+            except:
+                os.startfile('C:\\')
         else:
             for i in desktop:
                 if i[:i.find('.')].lower() in text_for.split():
                     os.startfile(r'C:\Users\user\Desktop' + '\\' + i)
     elif cmd == 'close':
-        print(text_for.split()[-1])
-        folder = get_program_hwnd_path(text_for.split()[-1])
+        folder = get_program_hwnd_path('explorer')
         if folder[0][0] != 'процесс не запущен':
-            win32gui.PostMessage(folder[0][1], win32con.WM_CLOSE, 0, 0)
+            win32gui.PostMessage(folder[1][1], win32con.WM_CLOSE, 0, 0)
 
 
 def button(button):
