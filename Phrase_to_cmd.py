@@ -16,10 +16,14 @@ import os
 import time
 import pyautogui
 from num2t4ru import num2text
+from ru_word2number import w2n
 from datetime import datetime
 from googletrans import Translator
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import comtypes
+import random
+
+translator = Translator()
 
 
 def get_program_hwnd_path(file_name):
@@ -33,6 +37,7 @@ def get_program_hwnd_path(file_name):
                     win32gui.GetWindowText(hwnd).lower() == file_name:
                 find_proc.append([proc_path.split('\\')[-1][:-4], hwnd, proc_path,
                                   win32gui.GetWindowText(hwnd)])
+
     find_proc = []
     win32gui.EnumWindows(wins, None)
     print(find_proc)
@@ -44,7 +49,9 @@ def get_program_hwnd_path(file_name):
         return find_proc
     else:
         return [['процесс не запущен', win32gui.GetForegroundWindow(), '', 'процесс не запущен']]
-# /\/\/\ здесь может что-то сломаться
+
+
+# /\/\/\ не всегда корректно выводится
 
 def window_forward(file_name):  # вывод окна на передний план
     tmp = get_program_hwnd_path(file_name)
@@ -67,18 +74,25 @@ def times():
 
 
 def write(text_for):
-    keyboard.write(' '.join(text_for.split()[1:]))
+    if len(text_for.split()[0]) < 3:
+        keyboard.write(' '.join(text_for.split()[2:]))
+    else:
+        keyboard.write(' '.join(text_for.split()[1:]))
     Vosproizvedenie_RU.speak('написала')
 
 
 def tab(text_for):
     window_forward('chrome')
+    time.sleep(0.1)
     if 'close' == Phrase.for_tab(text_for):
         keyboard.send('Ctrl+w')
         Vosproizvedenie_RU.speak('закрыла')
     elif 'reestablish' == Phrase.for_tab(text_for):
         keyboard.send('Ctrl + Shift + T')
         Vosproizvedenie_RU.speak('вернула')
+    elif Phrase.numders(text_for):
+        number = Phrase.numders(text_for)
+        keyboard.send(f'Ctrl + {number}')
 
 
 def open_google():
@@ -91,7 +105,7 @@ def music(text_for):
         if 'winamp.exe' not in [i.name() for i in psutil.process_iter()]:
             tmp = win32gui.GetForegroundWindow()
             tmp2 = 0
-            os.startfile('C:\Program Files (x86)\Winamp\winamp.exe')
+            os.startfile(Phrase.program_path('winamp'))
             while 'Winamp' not in win32gui.GetWindowText(win32gui.GetForegroundWindow()).split():
                 time.sleep(1)
                 tmp2 = win32gui.GetForegroundWindow()
@@ -109,7 +123,6 @@ def music(text_for):
 
     elif 'back' == Phrase.cmd_phrase_music(text_for):
         keyboard.send('ctrl+alt+pageup')
-
     else:
         Vosproizvedenie_RU.speak('не поняла')
 
@@ -133,7 +146,6 @@ def open_close_all(text_for):
                 for proc in psutil.process_iter():
                     if proc.name() == progr + '.exe':
                         proc.kill()
-
     else:
         Vosproizvedenie_RU.speak(text_for)
 
@@ -171,11 +183,11 @@ def open_close_program(prog):
             Vosproizvedenie_RU.speak('открываю')
             if program == 'chrome':
                 while get_program_hwnd_path('chrome')[0][3] == \
-                    'процесс не запущен' or \
-                    get_program_hwnd_path('chrome')[0][3] == \
-                    'Новая вкладка - Google Chrome':
-                        print(get_program_hwnd_path('chrome'), '3')
-                        time.sleep(1)
+                        'процесс не запущен' or \
+                        get_program_hwnd_path('chrome')[0][3] == \
+                        'Новая вкладка - Google Chrome':
+                    print(get_program_hwnd_path('chrome'), '3')
+                    time.sleep(1)
                 if get_program_hwnd_path('chrome')[0][3] == 'Восстановить страницы?':
                     # window_forward('chrome')
                     keyboard.send('Enter')
@@ -195,7 +207,7 @@ def open_close_program(prog):
 
 
 def open_folder(text_for, disk_or_folder):
-    desktop = os.listdir(path=r'C:\Users\user\Desktop')
+    desktop = os.listdir(path=r'C:\Users\Roman\Desktop')
     cmd = Phrase.for_open_close_program(text_for)
     if cmd == 'open':
         if disk_or_folder == 'disk':
@@ -205,8 +217,9 @@ def open_folder(text_for, disk_or_folder):
                 os.startfile('C:\\')
         else:
             for i in desktop:
+                print(i)
                 if i[:i.find('.')].lower() in text_for.split():
-                    os.startfile(r'C:\Users\user\Desktop' + '\\' + i)
+                    os.startfile(r'C:\Users\Roman\Desktop' + '\\' + i)
     elif cmd == 'close':
         folder = get_program_hwnd_path('explorer')
         if folder[0][0] != 'процесс не запущен':
@@ -222,35 +235,30 @@ def button(button):
 
 
 def translate(text):
-    translator = Translator()
+    # translator = Translator()
     if 'английский' in text.split():
         Vosproizvedenie_RU.speak('режим перевода с русского на английский')
-        while text != 'выход':
+        while len(text.split()) == len(set(text.split()) - {'нормальный', 'выход'}):
             text = Raspoznavanie_RU.record()
             print(text)
             try:
-                temp = translator.translate(text, dest='en')
+                temp = translator.translate(text, src='ru', dest='en')
+                time.sleep(0.1)
                 print(temp.text)
-                if temp.text[0].encode().isalpha():
-                    Vosproizvedenie_EN.speak(temp.text)
-                else:
-                    Vosproizvedenie_RU.speak(text + ' не переведено')
+                Vosproizvedenie_EN.speak(temp.text)
             except:
                 print('ошибка перевода(APi)')
         Vosproizvedenie_EN.speak('normal mode')
 
     elif 'русский' in text.split():
         Vosproizvedenie_RU.speak('режим перевода с английского на русский')
-        while text != 'out':
+        while len(text.split()) == len(set(text.split()) - {'out', 'normal', 'mode'}):
             text = Raspoznavanie_EN.record()
             print(text)
             try:
-                temp = translator.translate(text, dest='ru')
+                temp = translator.translate(text, src='en', dest='ru')
                 print(temp.text)
-                if not temp.text[0].encode().isalpha():
-                    Vosproizvedenie_RU.speak(temp.text)
-                else:
-                    Vosproizvedenie_EN.speak(text + ' dont translated')
+                Vosproizvedenie_RU.speak(temp.text)
             except:
                 print('ошибка перевода(APi)')
         Vosproizvedenie_RU.speak('обычный режим')
@@ -282,15 +290,14 @@ def sound_volume(text):
     )
     volume = interface.QueryInterface(IAudioEndpointVolume)
     current_volume = volume.GetMasterVolumeLevelScalar()
+    sound_level = {'один': 0.1, 'два': 0.2, 'три': 0.3, 'четыре': 0.4, 'пять': 0.5,
+                   'шесть': 0.6, 'семь': 0.7, 'восемь': 0.8, 'девять': 0.9, 'десять': 1}
 
     if 'down' == Phrase.for_sound_volume(text) and current_volume >= 0.1:
         volume.SetMasterVolumeLevelScalar(current_volume - 0.1, None)
     elif 'up' == Phrase.for_sound_volume(text) and current_volume <= 0.9:
         volume.SetMasterVolumeLevelScalar(current_volume + 0.1, None)
-    elif 'change' == Phrase.for_sound_volume(text):
-        sound_level = {'один': 0.1, 'два': 0.2, 'три': 0.3, 'четыре': 0.4, 'пять': 0.5,
-                       'шесть': 0.6, 'семь': 0.7, 'восемь': 0.8, 'девять': 0.9, 'десять': 1}
-
+    elif 'change' == Phrase.for_sound_volume(text) or text in sound_level:
         def level_sound(txt):
             for i in sound_level:
                 if i in txt:
@@ -300,3 +307,50 @@ def sound_volume(text):
         volume.SetMasterVolumeLevelScalar(level_sound(text), None)
     else:
         Vosproizvedenie_RU.speak('не поняла')
+
+
+def coin(text):
+    rezult = random.randint(1, 2)
+    if rezult == 1:
+        Vosproizvedenie_RU.speak('решка')
+    elif rezult == 2:
+        Vosproizvedenie_RU.speak('орел')
+
+
+last_symb = 'multi'
+
+
+def calculator(text):
+    global last_symb
+    symb, word = Phrase.for_calculator(text)
+    if symb is None: symb = last_symb
+    last_symb = symb
+    try:
+        if ' и ' in text.split(*word)[0]:
+            res1 = w2n.word_to_num((text.split(*word)[0]).split(' и ')[0]) + \
+                   (w2n.word_to_num((text.split(*word)[0]).split(' и ')[1]) *
+                    0.1 ** len(str(w2n.word_to_num((text.split(*word)[0]).split(' и ')[1]))))
+        else:
+            res1 = w2n.word_to_num(text.split(*word)[0])
+        if ' и ' in text.split(*word)[1]:
+            res2 = w2n.word_to_num((text.split(*word)[1]).split(' и ')[0]) + \
+                   (w2n.word_to_num((text.split(*word)[1]).split(' и ')[1]) *
+                    0.1 ** len(str(w2n.word_to_num((text.split(*word)[1]).split(' и ')[1]))))
+        else:
+            res2 = w2n.word_to_num(text.split(*word)[1])
+        res = 0
+        if symb == 'plus':
+            res = res1 + res2
+        elif symb == 'minus':
+            res = res1 - res2
+        elif symb == 'multi':
+            res = res1 * res2
+        elif symb == 'divide':
+            res = res1 / res2
+        print(f'{res1} {symb} {res2} = {res}')
+        Vosproizvedenie_RU.speak(num2text(res)) if type(res) == int else \
+            Vosproizvedenie_RU.speak(f'{num2text(res // 1)} и {num2text(res%1*100)}') \
+            if str(res%1*100)[-1] != '0' else \
+            Vosproizvedenie_RU.speak(f'{num2text(res // 1)} и {num2text(res%1*10)}')
+    except:
+        Vosproizvedenie_RU.speak(text)

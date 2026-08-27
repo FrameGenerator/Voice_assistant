@@ -1,0 +1,35 @@
+# Игнорируем виртуальное окружение (ту папку, куда ставятся все библиотеки)
+venv/
+.venv/
+env/
+
+# Игнорируем внутренние настройки самого PyCharm
+.idea/
+
+# Игнорируем скрытый кэш Python (он создается автоматически при запуске кода)
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Игнорируем кэш тестов и инструментов
+.pytest_cache/
+.mypy_cache/
+
+# Игнорируем файлы с системными настройками (например, если ты на Mac)
+.DS_Store
+Thumbs.db
+
+# Игнорируем файлы с будущими секретами и паролями
+.env
+
+Lib/
+Scripts/
+pyvenv.cfg
+
+model_small
+model_small_EN
+ru_number_to_text-master
+Russian_w2n
+Russian_w2n-master
+*.wav

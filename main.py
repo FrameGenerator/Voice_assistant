@@ -1,4 +1,5 @@
 import Raspoznavanie_RU
+import Vosproizvedenie_EN
 import Vosproizvedenie_RU
 import Phrase
 import Phrase_to_cmd
@@ -22,8 +23,9 @@ command_dict = {
     'press': lambda: Phrase_to_cmd.button(text_start),  # Enter
     'translate': lambda: Phrase_to_cmd.translate(text_start),
     'sound_level': lambda: Phrase_to_cmd.sound_volume(text_start),
-    'for_last_cmd': lambda: Vosproizvedenie_RU.speak(text_start),  # music
-    'silent_mode': lambda: Vosproizvedenie_RU.for_silent_mode()
+    'silent_mode': lambda: Vosproizvedenie_RU.for_silent_mode(),
+    'coin': lambda: Phrase_to_cmd.coin(text_start),
+    'calculator': lambda: Phrase_to_cmd.calculator(text_start)
 }
 
 
@@ -32,17 +34,16 @@ def data():
     text_start = Raspoznavanie_RU.record()
     print(text_start)
     cmd = Phrase.cmd_phrase(text_start)
-    print(cmd)
-    if cmd == 'for_last_cmd':
-        cmd = Phrase.cmd_phrase(' '.join(reversed(text_start.split())))
-        if last_cmd == 'music':
-            cmd = 'music'
-        if last_cmd == 'sound_level':
-            cmd = 'sound_level'
+    print('cmd:      ', cmd)
+    print('last_cmd: ', last_cmd)
+    if last_cmd in ['music', 'sound_level', 'tab', 'calculator'] and cmd is None:
+        cmd = last_cmd
     last_cmd = cmd
     if cmd is None:
         if not str(text_start[0].encode())[2].isalpha():
             Vosproizvedenie_RU.speak(text_start)
+        else:
+            Vosproizvedenie_EN.speak(text_start)
     else:
         command_dict.get(cmd)()
 
