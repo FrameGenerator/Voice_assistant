@@ -1,28 +1,38 @@
-import vosk
 import sys
-import sounddevice as sd
 import queue
+import json
+import vosk
+import sounddevice as sd
 
 
 model = vosk.Model('model_small')
 samplerate = 16000
-
-q = queue.Queue()
+audio_queue = queue.Queue()
 
 
 def callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
-    q.put(bytes(indata))
+    audio_queue.put(bytes(indata))
 
 
-def record():
-    with sd.RawInputStream(samplerate=samplerate, blocksize=0, device=1, dtype='int16',
+def start_speech_recognition(text_queue):
+    with sd.RawInputStream(samplerate=samplerate, blocksize=0, dtype='int16',
                            channels=1, callback=callback):
         rec = vosk.KaldiRecognizer(model, samplerate)
+        print("🎙️ Поток распознавания речи запущен и слушает...")
+
         while True:
-            data = q.get()
+            data = audio_queue.get()
             if rec.AcceptWaveform(data):
                 raw_text = rec.Result()
-                if len(raw_text[14:-3]) > 0:
-                    return raw_text[14:-3]
+
+                try:
+                    res_dict = json.loads(raw_text)
+                    text = res_dict.get('text', '').strip()
+
+                    if text:
+                        print(f"[Vosk] Распознано: {text}")
+                        text_queue.put(text)
+                except Exception as e:
+                    print(f"Ошибка парсинга JSON: {e}")
