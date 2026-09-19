@@ -15,13 +15,14 @@ import win32api
 import os
 import time
 import pyautogui
-from num2t4ru import num2text
-from ru_word2number import w2n
+from num2words import num2words
 from datetime import datetime
 from googletrans import Translator
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import comtypes
 import random
+import operator
+import re
 
 translator = Translator()
 
@@ -67,10 +68,11 @@ def window_forward(file_name):  # вывод окна на передний пл
 
 
 def times():
-    print(str(datetime.now().time())[:5])
-    Vosproizvedenie_RU.speak('Сейчас' + ' ' + num2text(datetime.now().hour) + ' ' +
-                             num2text(datetime.now().minute)
-                             )
+    now = datetime.now()
+    print(str(now.time())[:5])
+    hours = num2words(now.hour, lang='ru')
+    minutes = num2words(now.minute, lang='ru')
+    Vosproizvedenie_RU.speak(f'Сейчас {hours} {minutes}')
 
 
 def write(text_for):
@@ -320,37 +322,60 @@ def coin(text):
 last_symb = 'multi'
 
 
+def parse_ru_numbers(text):
+    """Конвертер русских слов в числа от 0 до 999 (целые и дробные)"""
+    words_dict = {
+        'ноль': 0, 'один': 1, 'два': 2, 'три': 3, 'четыре': 4, 'пять': 5, 'шесть': 6, 'семь': 7, 'восемь': 8,
+        'девять': 9,
+        'десять': 10, 'одиннадцать': 11, 'двенадцать': 12, 'тринадцать': 13, 'четырнадцать': 14, 'пятнадцать': 15,
+        'шестнадцать': 16, 'семнадцать': 17, 'восемнадцать': 18, 'девятнадцать': 19, 'двадцать': 20, 'тридцать': 30,
+        'сорок': 40, 'пятьдесят': 50, 'шестьдесят': 60, 'семьдесят': 70, 'восемьдесят': 80, 'девяносто': 90,
+        'сто': 100, 'двести': 200, 'триста': 300, 'четыреста': 400, 'пятьсот': 500, 'шестьсот': 600, 'семьсот': 700,
+        'восемьсот': 800, 'девятьсот': 900
+    }
+
+    if ' и ' in text:
+        left, right = text.split(' и ', 1)
+        return float(f"{parse_ru_numbers(left)}.{parse_ru_numbers(right)}")
+
+    return sum(words_dict[word] for word in text.split() if word in words_dict)
+
+
 def calculator(text):
-    global last_symb
     symb, word = Phrase.for_calculator(text)
-    if symb is None: symb = last_symb
-    last_symb = symb
+    delimiters = {'на', 'плюс', 'минус', 'к'} | word
+    operation = {
+        'plus': operator.add,
+        'minus': operator.sub,
+        'multi': operator.mul,
+        'divide': operator.truediv
+    }
+
     try:
-        if ' и ' in text.split(*word)[0]:
-            res1 = w2n.word_to_num((text.split(*word)[0]).split(' и ')[0]) + \
-                   (w2n.word_to_num((text.split(*word)[0]).split(' и ')[1]) *
-                    0.1 ** len(str(w2n.word_to_num((text.split(*word)[0]).split(' и ')[1]))))
-        else:
-            res1 = w2n.word_to_num(text.split(*word)[0])
-        if ' и ' in text.split(*word)[1]:
-            res2 = w2n.word_to_num((text.split(*word)[1]).split(' и ')[0]) + \
-                   (w2n.word_to_num((text.split(*word)[1]).split(' и ')[1]) *
-                    0.1 ** len(str(w2n.word_to_num((text.split(*word)[1]).split(' и ')[1]))))
-        else:
-            res2 = w2n.word_to_num(text.split(*word)[1])
-        res = 0
-        if symb == 'plus':
-            res = res1 + res2
-        elif symb == 'minus':
-            res = res1 - res2
-        elif symb == 'multi':
-            res = res1 * res2
-        elif symb == 'divide':
-            res = res1 / res2
-        print(f'{res1} {symb} {res2} = {res}')
-        Vosproizvedenie_RU.speak(num2text(res)) if type(res) == int else \
-            Vosproizvedenie_RU.speak(f'{num2text(res // 1)} и {num2text(res%1*100)}') \
-            if str(res%1*100)[-1] != '0' else \
-            Vosproizvedenie_RU.speak(f'{num2text(res // 1)} и {num2text(res%1*10)}')
-    except:
+        eng_rus_fixer = str.maketrans("caoxepmy", "саохерму")
+        cleaned_text = text.translate(eng_rus_fixer)
+
+        pattern = r'\b(?:' + '|'.join(delimiters) + r')\b'
+        text_parts = re.split(pattern, cleaned_text)
+
+        if len(text_parts) < 2:
+            raise ValueError("Не удалось разделить фразу на два числа")
+
+        res1 = parse_ru_numbers(text_parts[0])
+        res2 = parse_ru_numbers(text_parts[1])
+        print(res1)
+        print(res2)
+
+        res = operation[symb](res1, res2)
+
+        if isinstance(res, float):
+            res = round(res, 2)
+
+        print(f"📊 Расчет: {res1} {symb} {res2} = {res}")
+
+        speech_text = num2words(res, lang='ru')
+        Vosproizvedenie_RU.speak(speech_text)
+
+    except Exception as e:
+        print(f"Ошибка в калькуляторе: {e}")
         Vosproizvedenie_RU.speak(text)

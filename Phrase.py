@@ -180,13 +180,16 @@ def numders(text):
 def for_calculator(text):
     data_symbols = {
         'plus': {'плюс'},
-        'minus': {'минус', 'минут'},
+        'minus': {'минус', 'минут', 'минуты'},
         'multi': {'умножить', 'умножь', 'множественные', 'наш'},
         'divide': {'разделить', 'поделить', 'пропили', 'пойти', 'одели', 'отели',
                    'подери', 'пробили', 'провели', 'отделить', 'отдели', 'подери'}
     }
-    delimiter = {'на', 'плюс', 'минус', 'к'}
-    if text == 'all': return {i for j in data_symbols.values() for i in j}
-    print(get_cmd(text, data_symbols), delimiter & set(text.split()), '****')
-    return get_cmd(text, data_symbols), delimiter & set(text.split())
+    all_words = {i for j in data_symbols.values() for i in j}
+    if text == 'all':
+        return all_words
+    else:
+        symb, words = next((key, values) for key, values in data_symbols.items() if set(text.split()) & values)
+        word = set(text.split()) & words
+        return symb, word
 

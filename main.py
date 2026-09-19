@@ -33,7 +33,7 @@ command_dict = {
 def process_command(text_start):
     global last_cmd
     cmd = Phrase.cmd_phrase(text_start)
-    if cmd is None and last_cmd in ['music', 'sound_level', 'tab', 'calculator']:
+    if cmd is None and last_cmd in ['music', 'sound_level', 'tab']:
         cmd = last_cmd
 
     last_cmd = cmd
