@@ -41,7 +41,7 @@ DATA_PHRASE = {
     'sound_level': {'звук', 'громкость', 'звуков', 'круг', 'бог', 'громкости', 'звука'},
     'coin': {'монетку', 'монеты', 'монет'},
     'calculator': set().union(*DATA_SYMBOLS.values()),
-    'program': set().union(*DATA_PROGRAMS.values())
+    'manage_program': set().union(*DATA_PROGRAMS.values())
 }
 
 DATA_MUS = {
@@ -113,11 +113,11 @@ DATA_NUMBERS = {
 }
 
 DATA_PROGRAM_PATHS = {
-    'winamp': r'A:\Winamp\Winamp\winamp.exe',
+    'winamp': r'C:\Program Files (x86)\Winamp\winamp.exe',
     'Battle.net': r'A:\BattleNet\Battle.net\Battle.net Launcher.exe',
     'osu!': r'G:\Users\user\AppData\Local\osu!\osu!.exe',
     'chrome': r'C:\Program Files\Google\Chrome\Application\chrome.exe',
-    'pycharm': r'A:\Pycharm\PyCharm Community Edition 2023.1.2\bin\pycharm64.exe',
+    'pycharm': r'C:\Program Files\JetBrains\PyCharm Community Edition 2024.1.3\bin\pycharm64.exe',
 }
 
 

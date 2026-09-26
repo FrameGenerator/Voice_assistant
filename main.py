@@ -11,16 +11,16 @@ text_queue = queue.Queue()
 last_cmd = ''
 command_dict = {
     'time': lambda: Phrase_to_cmd.times(),
-    'all': lambda: Phrase_to_cmd.open_close_all(text_start),
-    'tab': lambda: Phrase_to_cmd.tab(text_start),
+    # 'all': lambda: Phrase_to_cmd.open_close_all(text_start),
+    # 'tab': lambda: Phrase_to_cmd.tab(text_start),
     'write': lambda: Phrase_to_cmd.write(text_start),
     'google': lambda: Phrase_to_cmd.open_google(),
     'music': lambda: Phrase_to_cmd.music(text_start),
     'wait_or_end': lambda: Phrase_to_cmd.wait_or_end(text_start),
-    'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),
-    'program': lambda: Phrase_to_cmd.open_close_program(text_start),
-    'folder': lambda: Phrase_to_cmd.open_folder(text_start, 'folder'),
-    'disk': lambda: Phrase_to_cmd.open_folder(text_start, 'disk'),
+    # 'minimize': lambda: Phrase_to_cmd.window_minimized(text_start),
+    'manage_program': lambda: Phrase_to_cmd.manage_program(text_start),
+    # 'folder': lambda: Phrase_to_cmd.open_folder(text_start, 'folder'),
+    # 'disk': lambda: Phrase_to_cmd.open_folder(text_start, 'disk'),
     'press': lambda: Phrase_to_cmd.button(text_start),
     'translate': lambda: Phrase_to_cmd.translate(text_start),
     'sound_level': lambda: Phrase_to_cmd.sound_volume(text_start),
@@ -33,6 +33,7 @@ command_dict = {
 def process_command(text_start):
     global last_cmd
     cmd = Phrase.cmd_phrase(text_start)
+    print(cmd, 'cmd')
     if cmd is None and last_cmd in ['music', 'sound_level', 'tab']:
         cmd = last_cmd
 

@@ -23,48 +23,80 @@ import comtypes
 import random
 import operator
 import re
+import subprocess
 
 translator = Translator()
 
 
-def get_program_hwnd_path(file_name):
-    def wins(hwnd, _):  # вывод [[name(0), hwnd(1), path(2), wind_text(3)], [...], ]
+def get_main_hwnd(file_name):
+    """Вспомогательная функция: находит главное видимое окно программы по имени её exe-файла"""
+    target_file = f"{file_name.lower()}.exe"
+    target_pids = {p.info['pid'] for p in psutil.process_iter(['pid', 'name'])
+                   if p.info['name'] and p.info['name'].lower() == target_file}
+
+    if not target_pids:
+        return None
+
+    found_hwnds = []
+
+    def callback(hwnd, extra):
         if win32gui.IsWindowVisible(hwnd):
-            x, pid = win32process.GetWindowThreadProcessId(hwnd)
-            proc_path = win32process.GetModuleFileNameEx(
-                win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION |
-                                     win32con.PROCESS_VM_READ, False, pid), 0)
-            if proc_path.split('\\')[-1] == file_name + '.exe' or \
-                    win32gui.GetWindowText(hwnd).lower() == file_name:
-                find_proc.append([proc_path.split('\\')[-1][:-4], hwnd, proc_path,
-                                  win32gui.GetWindowText(hwnd)])
+            _, win_pid = win32process.GetWindowThreadProcessId(hwnd)
+            if win_pid in target_pids:
+                title = win32gui.GetWindowText(hwnd)
+                # Игнорируем служебные фоновые окна и плееры
+                if title and "Редактор" not in title and title != "Program Manager":
+                    found_hwnds.append(hwnd)
 
-    find_proc = []
-    win32gui.EnumWindows(wins, None)
-    print(find_proc)
-    if len(find_proc) > 0:
-        find_proc = [i for i in find_proc if i[3] != 'Редактор списка воспроизведения Winamp'
-                     and len(i[3]) > 0]
-        print(find_proc)
-        print('удаление не главных окон из списка')
-        return find_proc
+    win32gui.EnumWindows(callback, None)
+    return found_hwnds[0] if found_hwnds else None
+
+
+def manage_program(text_for):
+    """
+    Универсальный менеджер программ.
+    Сам понимает из фразы, какую программу и что с ней сделать: открыть, свернуть или закрыть.
+    """
+    text_for = text_for.lower().strip()
+    prog_name = Phrase.name_programs(text_for)
+
+    action = Phrase.for_open_close_program(text_for)
+    hwnd = get_main_hwnd(prog_name)
+    print(prog_name, action, hwnd)
+
+    if action == 'close':
+        if hwnd:
+            win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+            Vosproizvedenie_RU.speak(f"закрываю {prog_name}")
+        else:
+            for proc in psutil.process_iter(['name']):
+                if proc.info['name'] and proc.info['name'].lower() == f"{prog_name}.exe":
+                    proc.kill()
+            Vosproizvedenie_RU.speak(f"{prog_name} не была открыта, но процессы очищены")
+        return
+
+    if action == 'minimize':
+        if hwnd:
+            win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+            Vosproizvedenie_RU.speak("свернула")
+        else:
+            Vosproizvedenie_RU.speak("программа и так не запущена")
+        return
+
+    if hwnd:
+        if win32gui.IsIconic(hwnd):
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        else:
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        win32gui.SetForegroundWindow(hwnd)
+        Vosproizvedenie_RU.speak("разворачиваю")
     else:
-        return [['процесс не запущен', win32gui.GetForegroundWindow(), '', 'процесс не запущен']]
-
-
-# /\/\/\ не всегда корректно выводится
-
-def window_forward(file_name):  # вывод окна на передний план
-    tmp = get_program_hwnd_path(file_name)
-    try:
-        win32gui.ShowWindow(tmp[0][1], win32con.SW_NORMAL)  # вывод из трея
-        keyboard.press("alt")
-        time.sleep(0.5)
-        win32gui.SetForegroundWindow(tmp[0][1])  # вывод на передний план
-        keyboard.release("alt")
-    except:
-        keyboard.release("alt")
-    print('Forward ' + file_name)
+        path = Phrase.program_path(prog_name)
+        if path and os.path.exists(path):
+            Vosproizvedenie_RU.speak(f"открываю {prog_name}")
+            subprocess.Popen(path)
+        else:
+            Vosproizvedenie_RU.speak(f"Я не знаю где лежит {prog_name}. Проверьте пути в настройках.")
 
 
 def times():
@@ -83,18 +115,18 @@ def write(text_for):
     Vosproizvedenie_RU.speak('написала')
 
 
-def tab(text_for):
-    window_forward('chrome')
-    time.sleep(0.1)
-    if 'close' == Phrase.for_tab(text_for):
-        keyboard.send('Ctrl+w')
-        Vosproizvedenie_RU.speak('закрыла')
-    elif 'reestablish' == Phrase.for_tab(text_for):
-        keyboard.send('Ctrl + Shift + T')
-        Vosproizvedenie_RU.speak('вернула')
-    elif Phrase.numders(text_for):
-        number = Phrase.numders(text_for)
-        keyboard.send(f'Ctrl + {number}')
+# def tab(text_for):
+#     window_forward('chrome')
+#     time.sleep(0.1)
+#     if 'close' == Phrase.for_tab(text_for):
+#         keyboard.send('Ctrl+w')
+#         Vosproizvedenie_RU.speak('закрыла')
+#     elif 'reestablish' == Phrase.for_tab(text_for):
+#         keyboard.send('Ctrl + Shift + T')
+#         Vosproizvedenie_RU.speak('вернула')
+#     elif Phrase.numbers(text_for):
+#         number = Phrase.numbers(text_for)
+#         keyboard.send(f'Ctrl + {number}')
 
 
 def open_google():
@@ -129,27 +161,7 @@ def music(text_for):
         Vosproizvedenie_RU.speak('не поняла')
 
 
-def open_close_all(text_for):
-    if 'minimize' == Phrase.for_open_close_all(text_for) or \
-            'open' == Phrase.for_open_close_all(text_for):
-        tmp = pyautogui.position()
-        pyautogui.click(1918, 1078)
-        pyautogui.moveTo(tmp)
-        time.sleep(0.5)
-    elif 'close' == Phrase.for_open_close_all(text_for):
-        if len(Phrase.cmd_phrase('for_open_close_all') - set(text_for.split())) < \
-                len(Phrase.cmd_phrase('for_open_close_all')):
-            for i in get_program_hwnd_path('explorer'):
-                if len(i[3]) > 0 and i[3] != 'Пуск' and i[3] != 'Program Manager':
-                    win32gui.PostMessage(i[1], win32con.WM_CLOSE, 0, 0)
-        if 'программы' in text_for.split():
-            Vosproizvedenie_RU.speak('закрываю программы')
-            for progr in Phrase.name_programs('all_programs'):
-                for proc in psutil.process_iter():
-                    if proc.name() == progr + '.exe':
-                        proc.kill()
-    else:
-        Vosproizvedenie_RU.speak(text_for)
+
 
 
 def wait_or_end(text_for):
@@ -167,65 +179,7 @@ def wait_or_end(text_for):
         Vosproizvedenie_RU.speak('да')
 
 
-def window_minimized(wind):
-    print('Minimized ' + wind)
-    win32gui.ShowWindow(get_program_hwnd_path(wind)[0][1], win32con.SW_MINIMIZE)
-    Vosproizvedenie_RU.speak('ок')
 
-
-def open_close_program(prog):
-    program = Phrase.name_programs(prog)
-    print(program)
-    if 'open' == Phrase.for_open_close_program(prog):
-        if program + '.exe' in [i.name() for i in psutil.process_iter()]:
-            window_forward(program)
-            Vosproizvedenie_RU.speak('уже открыт')
-        else:
-            os.startfile(Phrase.program_path(program))
-            Vosproizvedenie_RU.speak('открываю')
-            if program == 'chrome':
-                while get_program_hwnd_path('chrome')[0][3] == \
-                        'процесс не запущен' or \
-                        get_program_hwnd_path('chrome')[0][3] == \
-                        'Новая вкладка - Google Chrome':
-                    print(get_program_hwnd_path('chrome'), '3')
-                    time.sleep(1)
-                if get_program_hwnd_path('chrome')[0][3] == 'Восстановить страницы?':
-                    # window_forward('chrome')
-                    keyboard.send('Enter')
-
-    elif 'close' == Phrase.for_open_close_program(prog):
-        Vosproizvedenie_RU.speak('закрываю')
-        for i in psutil.process_iter():
-            if i.name() == program + '.exe':
-                i.kill()
-    elif 'forward' == Phrase.for_open_close_program(prog):
-        window_forward(program)
-        Vosproizvedenie_RU.speak('ок')
-    elif 'minimize' == Phrase.for_open_close_program(prog):
-        window_minimized(program)
-    else:
-        Vosproizvedenie_RU.speak('не поняла команду')
-
-
-def open_folder(text_for, disk_or_folder):
-    desktop = os.listdir(path=r'C:\Users\Roman\Desktop')
-    cmd = Phrase.for_open_close_program(text_for)
-    if cmd == 'open':
-        if disk_or_folder == 'disk':
-            try:
-                os.startfile(Phrase.for_folders(text_for) + ':\\')
-            except:
-                os.startfile('C:\\')
-        else:
-            for i in desktop:
-                print(i)
-                if i[:i.find('.')].lower() in text_for.split():
-                    os.startfile(r'C:\Users\Roman\Desktop' + '\\' + i)
-    elif cmd == 'close':
-        folder = get_program_hwnd_path('explorer')
-        if folder[0][0] != 'процесс не запущен':
-            win32gui.PostMessage(folder[1][1], win32con.WM_CLOSE, 0, 0)
 
 
 def button(button):
