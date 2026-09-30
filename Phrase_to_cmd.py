@@ -24,6 +24,7 @@ import random
 import operator
 import re
 import subprocess
+import pyperclip
 
 translator = Translator()
 
@@ -62,7 +63,6 @@ def manage_program(text_for):
 
     action = Phrase.for_open_close_program(text_for)
     hwnd = get_main_hwnd(prog_name)
-    print(prog_name, action, hwnd)
 
     if action == 'close':
         if hwnd:
@@ -108,25 +108,54 @@ def times():
 
 
 def write(text_for):
-    if len(text_for.split()[0]) < 3:
-        keyboard.write(' '.join(text_for.split()[2:]))
+    """Печатает текст в активное окно пользователя через буфер обмена (поддерживает русский язык)."""
+    write_keywords = Phrase.DATA_PHRASE.get('write', set())
+    pattern = r'\b(' + '|'.join(map(re.escape, write_keywords)) + r')\b'
+    clean_text = re.sub(pattern, '', text_for, count=1, flags=re.IGNORECASE).strip()
+
+    if clean_text:
+        pyperclip.copy(clean_text)
+        pyautogui.hotkey('ctrl', 'v')
+        Vosproizvedenie_RU.speak('написала')
     else:
-        keyboard.write(' '.join(text_for.split()[1:]))
-    Vosproizvedenie_RU.speak('написала')
+        Vosproizvedenie_RU.speak('А что именно написать?')
 
 
-# def tab(text_for):
-#     window_forward('chrome')
-#     time.sleep(0.1)
-#     if 'close' == Phrase.for_tab(text_for):
-#         keyboard.send('Ctrl+w')
-#         Vosproizvedenie_RU.speak('закрыла')
-#     elif 'reestablish' == Phrase.for_tab(text_for):
-#         keyboard.send('Ctrl + Shift + T')
-#         Vosproizvedenie_RU.speak('вернула')
-#     elif Phrase.numbers(text_for):
-#         number = Phrase.numbers(text_for)
-#         keyboard.send(f'Ctrl + {number}')
+def tab(text_for):
+    """Управление вкладками браузера Chrome"""
+    manage_program("хром")
+
+    chrome_focused = False
+    start_wait = time.time()
+
+    while time.time() - start_wait < 2.0:
+        active_hwnd = win32gui.GetForegroundWindow()
+        active_title = win32gui.GetWindowText(active_hwnd).lower()
+
+        if "chrome" in active_title:
+            chrome_focused = True
+            break
+        time.sleep(0.02)
+
+    if not chrome_focused:
+        Vosproizvedenie_RU.speak('Не успела дождаться открытия браузера')
+        return
+
+    action = Phrase.for_tab(text_for)
+
+    if action == 'close':
+        pyautogui.hotkey('ctrl', 'w')
+        Vosproizvedenie_RU.speak('закрыла')
+
+    elif action == 'reestablish':
+        pyautogui.hotkey('ctrl', 'shift', 't')
+        Vosproizvedenie_RU.speak('вернула')
+
+    else:
+        number = Phrase.numbers(text_for)
+        if number:
+            pyautogui.hotkey('ctrl', str(number))
+            Vosproizvedenie_RU.speak(f'открыла {number}-ю')
 
 
 def open_google():

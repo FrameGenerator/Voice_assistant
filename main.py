@@ -12,7 +12,7 @@ last_cmd = ''
 command_dict = {
     'time': lambda: Phrase_to_cmd.times(),
     # 'all': lambda: Phrase_to_cmd.open_close_all(text_start),
-    # 'tab': lambda: Phrase_to_cmd.tab(text_start),
+    'tab': lambda: Phrase_to_cmd.tab(text_start),
     'write': lambda: Phrase_to_cmd.write(text_start),
     'google': lambda: Phrase_to_cmd.open_google(),
     'music': lambda: Phrase_to_cmd.music(text_start),
