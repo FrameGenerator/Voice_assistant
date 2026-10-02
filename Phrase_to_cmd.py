@@ -34,6 +34,8 @@ def get_main_hwnd(file_name):
     target_file = f"{file_name.lower()}.exe"
     target_pids = {p.info['pid'] for p in psutil.process_iter(['pid', 'name'])
                    if p.info['name'] and p.info['name'].lower() == target_file}
+    print('target_pids')
+    print(target_pids)
 
     if not target_pids:
         return None
@@ -50,53 +52,73 @@ def get_main_hwnd(file_name):
                     found_hwnds.append(hwnd)
 
     win32gui.EnumWindows(callback, None)
+    print('found_hwnds')
+    print(found_hwnds)
     return found_hwnds[0] if found_hwnds else None
 
 
-def manage_program(text_for):
+def manage_program(text_for, silent=False):
     """
     Универсальный менеджер программ.
     Сам понимает из фразы, какую программу и что с ней сделать: открыть, свернуть или закрыть.
     """
     text_for = text_for.lower().strip()
     prog_name = Phrase.name_programs(text_for)
-
     action = Phrase.for_open_close_program(text_for)
     hwnd = get_main_hwnd(prog_name)
+    print(hwnd, 'hwnd')
+
+    def say(phrase):
+        if not silent:
+            Vosproizvedenie_RU.speak(phrase)
 
     if action == 'close':
         if hwnd:
             win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-            Vosproizvedenie_RU.speak(f"закрываю {prog_name}")
+            say(f"закрываю {prog_name}")
         else:
             for proc in psutil.process_iter(['name']):
                 if proc.info['name'] and proc.info['name'].lower() == f"{prog_name}.exe":
                     proc.kill()
-            Vosproizvedenie_RU.speak(f"{prog_name} не была открыта, но процессы очищены")
+            say(f"{prog_name} не была открыта, но процессы очищены")
         return
 
     if action == 'minimize':
         if hwnd:
             win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
-            Vosproizvedenie_RU.speak("свернула")
+            say("свернула")
         else:
-            Vosproizvedenie_RU.speak("программа и так не запущена")
+            say("программа и так не запущена")
         return
 
-    if hwnd:
-        if win32gui.IsIconic(hwnd):
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-        else:
-            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
-        win32gui.SetForegroundWindow(hwnd)
-        Vosproizvedenie_RU.speak("разворачиваю")
-    else:
+    if not hwnd:
         path = Phrase.program_path(prog_name)
         if path and os.path.exists(path):
-            Vosproizvedenie_RU.speak(f"открываю {prog_name}")
+            say(f"открываю {prog_name}")
             subprocess.Popen(path)
         else:
-            Vosproizvedenie_RU.speak(f"Я не знаю где лежит {prog_name}. Проверьте пути в настройках.")
+            say(f"Я не знаю где лежит {prog_name}.")
+        return
+
+    if win32gui.GetForegroundWindow() == hwnd:
+        return
+
+    if win32gui.IsIconic(hwnd):
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+    else:
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    except Exception:
+        win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+        try:
+            win32gui.SetForegroundWindow(hwnd)
+        except Exception as e:
+            print(f"Критическая ошибка фокуса: {e}")
+        win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+    say("разворачиваю")
 
 
 def times():
@@ -110,49 +132,59 @@ def times():
 def write(text_for):
     """Печатает текст в активное окно пользователя через буфер обмена (поддерживает русский язык)."""
     write_keywords = Phrase.DATA_PHRASE.get('write', set())
-    pattern = r'\b(' + '|'.join(map(re.escape, write_keywords)) + r')\b'
+    pattern = r'^.*?\b(' + '|'.join(map(re.escape, write_keywords)) + r')\b\s*'
     clean_text = re.sub(pattern, '', text_for, count=1, flags=re.IGNORECASE).strip()
 
-    if clean_text:
-        pyperclip.copy(clean_text)
-        pyautogui.hotkey('ctrl', 'v')
-        Vosproizvedenie_RU.speak('написала')
-    else:
+    if not clean_text:
         Vosproizvedenie_RU.speak('А что именно написать?')
+        return
+
+    pyperclip.copy(clean_text)
+    pyautogui.hotkey('ctrl', 'v')
+    Vosproizvedenie_RU.speak('написала')
 
 
 def tab(text_for):
-    """Управление вкладками браузера Chrome"""
-    manage_program("хром")
-
+    """Управление вкладками активного браузера Chrome с умным ожиданием."""
+    manage_program("хром", silent=True)
     chrome_focused = False
     start_wait = time.time()
 
-    while time.time() - start_wait < 2.0:
+    while time.time() - start_wait < 1.5:
         active_hwnd = win32gui.GetForegroundWindow()
-        active_title = win32gui.GetWindowText(active_hwnd).lower()
+        print(active_hwnd)
+        if not active_hwnd:
+            time.sleep(0.02)
+            continue
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(active_hwnd)
+            proc_name = psutil.Process(pid).name().lower()
 
-        if "chrome" in active_title:
-            chrome_focused = True
-            break
+            if "chrome" in proc_name:
+                chrome_focused = True
+                break
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
         time.sleep(0.02)
 
     if not chrome_focused:
-        Vosproizvedenie_RU.speak('Не успела дождаться открытия браузера')
+        Vosproizvedenie_RU.speak('Браузер не активен')
         return
 
+    time.sleep(0.05)
     action = Phrase.for_tab(text_for)
 
     if action == 'close':
         pyautogui.hotkey('ctrl', 'w')
         Vosproizvedenie_RU.speak('закрыла')
-
     elif action == 'reestablish':
+        print('reestablish')
         pyautogui.hotkey('ctrl', 'shift', 't')
         Vosproizvedenie_RU.speak('вернула')
-
     else:
         number = Phrase.numbers(text_for)
+        print(number, 'number')
         if number:
             pyautogui.hotkey('ctrl', str(number))
             Vosproizvedenie_RU.speak(f'открыла {number}-ю')
