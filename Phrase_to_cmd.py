@@ -34,8 +34,6 @@ def get_main_hwnd(file_name):
     target_file = f"{file_name.lower()}.exe"
     target_pids = {p.info['pid'] for p in psutil.process_iter(['pid', 'name'])
                    if p.info['name'] and p.info['name'].lower() == target_file}
-    print('target_pids')
-    print(target_pids)
 
     if not target_pids:
         return None
@@ -52,9 +50,26 @@ def get_main_hwnd(file_name):
                     found_hwnds.append(hwnd)
 
     win32gui.EnumWindows(callback, None)
-    print('found_hwnds')
-    print(found_hwnds)
     return found_hwnds[0] if found_hwnds else None
+
+
+def send_win32_hotkey(modifiers, key_code):
+    """
+    Вспомогательная функция: позволяет корректно отрабатывать
+    функциям, использующим клавиатуру(исключает залипание)
+    """
+    for mod in [win32con.VK_CONTROL, win32con.VK_SHIFT, win32con.VK_MENU]:
+        win32api.keybd_event(mod, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+    time.sleep(0.01)
+    for mod in modifiers:
+        win32api.keybd_event(mod, 0, 0, 0)
+
+    win32api.keybd_event(key_code, 0, 0, 0)
+    win32api.keybd_event(key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+    for mod in reversed(modifiers):
+        win32api.keybd_event(mod, 0, win32con.KEYEVENTF_KEYUP, 0)
 
 
 def manage_program(text_for, silent=False):
@@ -66,7 +81,6 @@ def manage_program(text_for, silent=False):
     prog_name = Phrase.name_programs(text_for)
     action = Phrase.for_open_close_program(text_for)
     hwnd = get_main_hwnd(prog_name)
-    print(hwnd, 'hwnd')
 
     def say(phrase):
         if not silent:
@@ -140,7 +154,7 @@ def write(text_for):
         return
 
     pyperclip.copy(clean_text)
-    pyautogui.hotkey('ctrl', 'v')
+    send_win32_hotkey([win32con.VK_CONTROL], ord('V'))
     Vosproizvedenie_RU.speak('написала')
 
 
@@ -151,12 +165,8 @@ def tab(text_for):
     start_wait = time.time()
 
     while time.time() - start_wait < 1.5:
-        active_hwnd = win32gui.GetForegroundWindow()
-        print(active_hwnd)
-        if not active_hwnd:
-            time.sleep(0.02)
-            continue
         try:
+            active_hwnd = win32gui.GetForegroundWindow()
             _, pid = win32process.GetWindowThreadProcessId(active_hwnd)
             proc_name = psutil.Process(pid).name().lower()
 
@@ -165,7 +175,6 @@ def tab(text_for):
                 break
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
-
         time.sleep(0.02)
 
     if not chrome_focused:
@@ -176,17 +185,15 @@ def tab(text_for):
     action = Phrase.for_tab(text_for)
 
     if action == 'close':
-        pyautogui.hotkey('ctrl', 'w')
+        send_win32_hotkey([win32con.VK_CONTROL], ord('W'))
         Vosproizvedenie_RU.speak('закрыла')
     elif action == 'reestablish':
-        print('reestablish')
-        pyautogui.hotkey('ctrl', 'shift', 't')
+        send_win32_hotkey([win32con.VK_CONTROL, win32con.VK_SHIFT], ord('T'))
         Vosproizvedenie_RU.speak('вернула')
     else:
         number = Phrase.numbers(text_for)
-        print(number, 'number')
         if number:
-            pyautogui.hotkey('ctrl', str(number))
+            send_win32_hotkey([win32con.VK_CONTROL], ord(str(number)))
             Vosproizvedenie_RU.speak(f'открыла {number}-ю')
 
 
@@ -220,9 +227,6 @@ def music(text_for):
         keyboard.send('ctrl+alt+pageup')
     else:
         Vosproizvedenie_RU.speak('не поняла')
-
-
-
 
 
 def wait_or_end(text_for):
