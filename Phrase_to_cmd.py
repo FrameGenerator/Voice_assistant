@@ -203,30 +203,71 @@ def open_google():
 
 
 def music(text_for):
-    if 'on' == Phrase.cmd_phrase_music(text_for):
-        if 'winamp.exe' not in [i.name() for i in psutil.process_iter()]:
-            tmp = win32gui.GetForegroundWindow()
-            tmp2 = 0
-            os.startfile(Phrase.program_path('winamp'))
-            while 'Winamp' not in win32gui.GetWindowText(win32gui.GetForegroundWindow()).split():
-                time.sleep(1)
-                tmp2 = win32gui.GetForegroundWindow()
-            while win32gui.IsWindowVisible(tmp2) == 0:
-                time.sleep(1)
-            win32gui.ShowWindow(win32gui.GetForegroundWindow(), win32con.SW_MINIMIZE)
-            win32gui.ShowWindow(tmp, 1)
-        keyboard.send('ctrl+alt+insert')
+    """Управление музыкальным плеером через системные APPCOMMAND сообщения Windows."""
+    action = Phrase.cmd_phrase_music(text_for)
 
-    elif 'off' == Phrase.cmd_phrase_music(text_for):
-        keyboard.send('ctrl+alt+home')
-
-    elif 'another' == Phrase.cmd_phrase_music(text_for):
-        keyboard.send('ctrl+alt+pagedown')
-
-    elif 'back' == Phrase.cmd_phrase_music(text_for):
-        keyboard.send('ctrl+alt+pageup')
-    else:
+    if not action:
         Vosproizvedenie_RU.speak('не поняла')
+        return
+
+    # Константы системных мультимедийных команд Windows API
+    WM_APPCOMMAND = 0x0319
+    HWND_BROADCAST = 0xFFFF  # Отправляет сообщение всем окнам в системе
+
+    APPCOMMAND_MEDIA_PLAY_PAUSE = 0x000D0000
+    APPCOMMAND_MEDIA_NEXTTRACK = 0x000B0000
+    APPCOMMAND_MEDIA_PREVTRACK = 0x000C0000
+
+    # --- СЦЕНАРИЙ: ВКЛЮЧИТЬ / ПРОДОЛЖИТЬ ---
+    if action == 'on':
+        winamp_running = any(
+            p.info['name'] and p.info['name'].lower() == 'winamp.exe'
+            for p in psutil.process_iter(['name'])
+        )
+
+        if not winamp_running:
+            # Запускаем плеер (silent=True, чтобы менеджер программ не болтал)
+            manage_program("винамп", silent=True)
+
+            # УМНОЕ ОЖИДАНИЕ НАСТОЯЩЕГО ГРАФИЧЕСКОГО ОКНА
+            start_wait = time.time()
+            hwnd = None
+            while time.time() - start_wait < 4.0:
+                target_hwnd = get_main_hwnd("winamp")
+                if target_hwnd:
+                    title = win32gui.GetWindowText(target_hwnd).lower()
+                    # Нам нужно именно главное окно со скином, у него длинный заголовок с версией билда
+                    if "winamp" in title or "build" in title:
+                        hwnd = target_hwnd
+                        break
+                time.sleep(0.1)
+
+            # Если нашли нужное окно — даем им полюбоваться и изящно сворачиваем
+            if hwnd:
+                time.sleep(0.4)  # Время, чтобы глаз зафиксировал открытие
+                win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+            else:
+                # На крайний случай, если окно инициализировалось слишком долго
+                time.sleep(1.0)
+
+        # Отправляем чистую системную команду Windows "Плей/Пауза"
+        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PLAY_PAUSE)
+        return
+
+    # --- СЦЕНАРИЙ: ПАУЗА / СТОП ---
+    if action == 'off':
+        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PLAY_PAUSE)
+        return
+
+    # --- СЦЕНАРИЙ: СЛЕДУЮЩИЙ ТРЕК ---
+    if action == 'another':
+        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_NEXTTRACK)
+        return
+
+    # --- СЦЕНАРИЙ: ПРЕДЫДУЩИЙ ТРЕК ---
+    if action == 'back':
+        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PREVTRACK)
+        return
 
 
 def wait_or_end(text_for):
