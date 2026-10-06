@@ -86,15 +86,28 @@ def manage_program(text_for, silent=False):
         if not silent:
             Vosproizvedenie_RU.speak(phrase)
 
+
     if action == 'close':
+        # 1. Посылаем сигнал закрытия окна
         if hwnd:
-            win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+            # Вместо WM_CLOSE шлем системную команду закрытия меню (так надежнее)
+            win32gui.PostMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_CLOSE, 0)
+            time.sleep(0.2)  # Даем 200 мс на сохранение настроек плеера
+
+        # 2. Жестко зачищаем ВСЕ оставшиеся процессы-зомби этого приложения
+        procs_killed = False
+        for proc in psutil.process_iter(['name']):
+            if proc.info['name'] and proc.info['name'].lower() == f"{prog_name}.exe":
+                try:
+                    proc.kill()
+                    procs_killed = True
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
+        if procs_killed or hwnd:
             say(f"закрываю {prog_name}")
         else:
-            for proc in psutil.process_iter(['name']):
-                if proc.info['name'] and proc.info['name'].lower() == f"{prog_name}.exe":
-                    proc.kill()
-            say(f"{prog_name} не была открыта, но процессы очищены")
+            say(f"{prog_name} и так не была открыта")
         return
 
     if action == 'minimize':
@@ -202,23 +215,30 @@ def open_google():
     Vosproizvedenie_RU.speak('открыла')
 
 
+def send_media_key(vk_code):
+    """Специальная функция для эмуляции физических медиа-кнопок клавиатуры."""
+    # Флаг расширенной клавиши (0x0001) сообщает Windows, что это медиа-кнопка
+    KEYEVENTF_EXTENDEDKEY = 0x0001
+    KEYEVENTF_KEYUP = 0x0002
+
+    # Сначала сбрасываем залипшие модификаторы
+    for mod in [win32con.VK_CONTROL, win32con.VK_SHIFT, win32con.VK_MENU]:
+        win32api.keybd_event(mod, 0, KEYEVENTF_KEYUP, 0)
+
+    # Имитируем физическое нажатие мультимедийной кнопки
+    win32api.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY, 0)
+    time.sleep(0.01)
+    win32api.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
+
+
 def music(text_for):
-    """Управление музыкальным плеером через системные APPCOMMAND сообщения Windows."""
+    """Управление музыкой через Winamp"""
     action = Phrase.cmd_phrase_music(text_for)
 
     if not action:
         Vosproizvedenie_RU.speak('не поняла')
         return
 
-    # Константы системных мультимедийных команд Windows API
-    WM_APPCOMMAND = 0x0319
-    HWND_BROADCAST = 0xFFFF  # Отправляет сообщение всем окнам в системе
-
-    APPCOMMAND_MEDIA_PLAY_PAUSE = 0x000D0000
-    APPCOMMAND_MEDIA_NEXTTRACK = 0x000B0000
-    APPCOMMAND_MEDIA_PREVTRACK = 0x000C0000
-
-    # --- СЦЕНАРИЙ: ВКЛЮЧИТЬ / ПРОДОЛЖИТЬ ---
     if action == 'on':
         winamp_running = any(
             p.info['name'] and p.info['name'].lower() == 'winamp.exe'
@@ -226,47 +246,37 @@ def music(text_for):
         )
 
         if not winamp_running:
-            # Запускаем плеер (silent=True, чтобы менеджер программ не болтал)
             manage_program("винамп", silent=True)
-
-            # УМНОЕ ОЖИДАНИЕ НАСТОЯЩЕГО ГРАФИЧЕСКОГО ОКНА
             start_wait = time.time()
             hwnd = None
             while time.time() - start_wait < 4.0:
                 target_hwnd = get_main_hwnd("winamp")
                 if target_hwnd:
                     title = win32gui.GetWindowText(target_hwnd).lower()
-                    # Нам нужно именно главное окно со скином, у него длинный заголовок с версией билда
                     if "winamp" in title or "build" in title:
                         hwnd = target_hwnd
                         break
                 time.sleep(0.1)
 
-            # Если нашли нужное окно — даем им полюбоваться и изящно сворачиваем
             if hwnd:
-                time.sleep(0.4)  # Время, чтобы глаз зафиксировал открытие
+                time.sleep(0.4)
                 win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
             else:
-                # На крайний случай, если окно инициализировалось слишком долго
                 time.sleep(1.0)
 
-        # Отправляем чистую системную команду Windows "Плей/Пауза"
-        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PLAY_PAUSE)
+        send_win32_hotkey([win32con.VK_CONTROL, win32con.VK_MENU], win32con.VK_INSERT)
         return
 
-    # --- СЦЕНАРИЙ: ПАУЗА / СТОП ---
     if action == 'off':
-        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PLAY_PAUSE)
+        send_win32_hotkey([win32con.VK_CONTROL, win32con.VK_MENU], win32con.VK_HOME)
         return
 
-    # --- СЦЕНАРИЙ: СЛЕДУЮЩИЙ ТРЕК ---
     if action == 'another':
-        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_NEXTTRACK)
+        send_win32_hotkey([win32con.VK_CONTROL, win32con.VK_MENU], win32con.VK_NEXT)
         return
 
-    # --- СЦЕНАРИЙ: ПРЕДЫДУЩИЙ ТРЕК ---
     if action == 'back':
-        win32gui.SendMessage(HWND_BROADCAST, WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PREVTRACK)
+        send_win32_hotkey([win32con.VK_CONTROL, win32con.VK_MENU], win32con.VK_PRIOR)
         return
 
 
