@@ -280,24 +280,6 @@ def music(text_for):
         return
 
 
-def wait_or_end(text_for):
-    if 'полностью' in text_for:
-        Vosproizvedenie_RU.speak('пока пока')
-        sys.exit()
-    else:
-        Vosproizvedenie_RU.speak('ожидаю')
-        while Phrase.for_wait_or_end(text_for) != 'wait':
-            text_for = Raspoznavanie_RU.record()
-            print(text_for)
-            if 'полностью' in text_for:
-                Vosproizvedenie_RU.speak('пока пока')
-                sys.exit()
-        Vosproizvedenie_RU.speak('да')
-
-
-
-
-
 def button(button):
     buttton = Phrase.buttons(button)
     if buttton is not None:
