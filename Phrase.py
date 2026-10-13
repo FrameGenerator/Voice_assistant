@@ -59,10 +59,8 @@ DATA_OPEN_CLOSE = {
 }
 
 DATA_WAIT_OR_END = {
-    'ты тут', 'включись', 'продолжим', 'продолжить', 'алло', 'отключись', 'выключись', 'включить'
-    'включи', 'отключи', 'и не', 'и нет', 'дальше', 'слышишь', 'але',
-    'включайся', 'химии', 'их', 'и и', 'и', 'имя', 'и ним', 'и ник',
-    'и и не', 'имя але', 'подруга'
+    'тут', 'включись', 'продолжим', 'продолжить', 'алло', 'отключись', 'выключись', 'включить'
+    'включи', 'отключи', 'слышишь', 'але', 'включайся', 'химии', 'подруга'
 }
 
 DATA_CMD_PROGRAM = {
@@ -73,7 +71,21 @@ DATA_CMD_PROGRAM = {
 }
 
 DATA_BUTTONS = {
-    'Enter': {'интер', 'принтер'}
+    'Enter': {
+        'keywords': {'интер', 'принтер'},
+        'modifiers': [],
+        'key_code': 'VK_RETURN'
+    },
+    'Space': {
+        'keywords': {'пробел'},
+        'modifiers': [],
+        'key_code': 'VK_SPACE'
+    },
+    'Backspace': {
+        'keywords': {'бэкспейс', 'экспресс', 'плэйс'},
+        'modifiers': [],
+        'key_code': 'VK_BACK'
+    }
 }
 
 DATA_TRANSLATE = {
@@ -180,9 +192,14 @@ def program_path(text):
     return DATA_PROGRAM_PATHS.get(text, '')
 
 
+
 def buttons(text):
-    """Определение нажатий клавиш"""
-    return get_cmd(text, DATA_BUTTONS)
+    """Нажатие клавиш"""
+    user_words = set(text.lower().strip().split())
+    for button_name, info in DATA_BUTTONS.items():
+        if user_words & info['keywords']:
+            return info
+    return None
 
 
 def for_translate(text):

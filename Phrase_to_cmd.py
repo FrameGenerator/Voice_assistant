@@ -216,8 +216,7 @@ def open_google():
 
 
 def send_media_key(vk_code):
-    """Специальная функция для эмуляции физических медиа-кнопок клавиатуры."""
-    # Флаг расширенной клавиши (0x0001) сообщает Windows, что это медиа-кнопка
+    """Вспомогательная функция для эмуляции физического нажатия"""
     KEYEVENTF_EXTENDEDKEY = 0x0001
     KEYEVENTF_KEYUP = 0x0002
 
@@ -225,7 +224,6 @@ def send_media_key(vk_code):
     for mod in [win32con.VK_CONTROL, win32con.VK_SHIFT, win32con.VK_MENU]:
         win32api.keybd_event(mod, 0, KEYEVENTF_KEYUP, 0)
 
-    # Имитируем физическое нажатие мультимедийной кнопки
     win32api.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY, 0)
     time.sleep(0.01)
     win32api.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
@@ -280,12 +278,23 @@ def music(text_for):
         return
 
 
-def button(button):
-    buttton = Phrase.buttons(button)
-    if buttton is not None:
-        keyboard.send(buttton)
-    else:
+def button(text_for):
+    button_info = Phrase.buttons(text_for)
+
+    if not button_info:
         Vosproizvedenie_RU.speak('нет такой кнопки')
+        return
+
+    str_key_code = button_info['key_code']
+    real_key_code = getattr(win32con, str_key_code, None)
+
+    if real_key_code is None:
+        print(f"[ERROR] Код {str_key_code} не найден в библиотеке win32con!")
+        Vosproizvedenie_RU.speak('Ошибка системного кода клавиши')
+        return
+
+    real_modifiers = [getattr(win32con, mod) for mod in button_info['modifiers'] if hasattr(win32con, mod)]
+    send_win32_hotkey(real_modifiers, real_key_code)
 
 
 def translate(text):
