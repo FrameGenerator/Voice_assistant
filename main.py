@@ -18,7 +18,7 @@ command_dict = {
     'music': lambda txt: Phrase_to_cmd.music(txt),
     'manage_program': lambda txt: Phrase_to_cmd.manage_program(txt),
     'press': lambda txt: Phrase_to_cmd.button(txt),
-    'translate': lambda txt: Phrase_to_cmd.translate(txt),
+    'translate': lambda txt: Phrase_to_cmd.translate(txt, text_queue),
     'sound_level': lambda txt: Phrase_to_cmd.sound_volume(txt),
     'silent_mode': lambda txt: Vosproizvedenie_RU.for_silent_mode(),
     'coin': lambda txt: Phrase_to_cmd.coin(txt),

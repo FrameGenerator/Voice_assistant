@@ -297,51 +297,39 @@ def button(text_for):
     send_win32_hotkey(real_modifiers, real_key_code)
 
 
-def translate(text):
-    # translator = Translator()
-    if 'английский' in text.split():
-        Vosproizvedenie_RU.speak('режим перевода с русского на английский')
-        while len(text.split()) == len(set(text.split()) - {'нормальный', 'выход'}):
-            text = Raspoznavanie_RU.record()
-            print(text)
-            try:
-                temp = translator.translate(text, src='ru', dest='en')
-                time.sleep(0.1)
-                print(temp.text)
+def translate(text_for, main_queue):
+    """Входит в режим перевода"""
+    Vosproizvedenie_RU.speak('включаю автоматический двойной перевод')
+    Raspoznavanie_RU.current_language = 'both'
+
+    while True:
+        msg = main_queue.get().lower().strip()
+        if msg in ['выход', 'нормальный', 'обычный режим', 'out', 'normal']:
+            break
+
+        try:
+            detected = translator.detect(msg).lang  # Вернет 'ru' или 'en'
+
+            if detected == 'ru':
+                temp = translator.translate(msg, src='ru', dest='en')
+                print(f"[Перевод] RU -> EN: {temp.text}")
                 Vosproizvedenie_EN.speak(temp.text)
-            except:
-                print('ошибка перевода(APi)')
-        Vosproizvedenie_EN.speak('normal mode')
-
-    elif 'русский' in text.split():
-        Vosproizvedenie_RU.speak('режим перевода с английского на русский')
-        while len(text.split()) == len(set(text.split()) - {'out', 'normal', 'mode'}):
-            text = Raspoznavanie_EN.record()
-            print(text)
-            try:
-                temp = translator.translate(text, src='en', dest='ru')
-                print(temp.text)
-                Vosproizvedenie_RU.speak(temp.text)
-            except:
-                print('ошибка перевода(APi)')
-        Vosproizvedenie_RU.speak('обычный режим')
-
-    elif 'двойной' in text.split():
-        Vosproizvedenie_RU.speak('режим перевода на двойной')
-        while Phrase.for_translate(str(text.split(' ')[0])) != 'out':
-            text = Raspoznavanie_both.record()
-            print(text)
-            if str(text[0].encode())[2].isalpha():
-                temp = translator.translate(text, dest='ru')
-                print(temp.text)
-                Vosproizvedenie_RU.speak(temp.text)
             else:
-                temp = translator.translate(text, dest='en')
-                print(temp.text)
-                Vosproizvedenie_EN.speak(temp.text)
-        Vosproizvedenie_RU.speak('обычный режим')
-    else:
-        Vosproizvedenie_RU.speak('какой режим?')
+                temp = translator.translate(msg, src='en', dest='ru')
+                print(f"[Перевод] EN -> RU: {temp.text}")
+                Vosproizvedenie_RU.speak(temp.text)
+        except Exception as e:
+            print(f"Ошибка API Переводчика: {e}")
+
+    Raspoznavanie_RU.current_language = 'ru'
+
+    while not main_queue.empty():
+        try:
+            main_queue.get_nowait()
+        except Exception:
+            break
+
+    Vosproizvedenie_RU.speak('обычный режим возвращен')
 
 
 def sound_volume(text):
