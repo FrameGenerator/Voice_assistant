@@ -5,7 +5,6 @@ import os
 import vosk
 import sounddevice as sd
 
-
 if os.path.exists('model_small_en') and os.path.exists('model_small'):
     model_ru = vosk.Model('model_small')
     model_en = vosk.Model('model_small_en')
@@ -20,6 +19,7 @@ current_language = 'ru'
 def callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
+
     audio_queue.put(bytes(indata))
 
 

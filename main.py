@@ -32,7 +32,6 @@ def process_command(text_start):
     clean_text = text_start.lower().strip()
     close_code_full = 'полностью' in clean_text
     close_code_wait = Phrase.for_wait_or_end(clean_text) == 'wait'
-    print(close_code_wait, 'close_code_wait')
 
     if (is_sleeping or close_code_wait) and close_code_full:
         Vosproizvedenie_RU.speak('пока пока')
@@ -46,7 +45,6 @@ def process_command(text_start):
         return 'CONTINUE'
 
     cmd = Phrase.cmd_phrase(clean_text)
-    print(cmd, 'cmd')
 
     if cmd is None and last_cmd in ['music', 'sound_level', 'tab']:
         cmd = last_cmd
