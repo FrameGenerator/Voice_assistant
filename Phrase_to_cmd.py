@@ -428,3 +428,17 @@ def calculator(text):
     except Exception as e:
         print(f"Ошибка в калькуляторе: {e}")
         Vosproizvedenie_RU.speak(text)
+
+
+def manage_silent_mode(text_for):
+    direction = Phrase.for_silent_mode_direction(text_for)
+
+    if direction == 'on':
+        Vosproizvedenie_RU.speak('включаю тихий режим')
+        Vosproizvedenie_RU.set_silent_mode(True)
+        print("🔕 Включен тихий режим. Ассистент работает молча.")
+
+    elif direction == 'off':
+        Vosproizvedenie_RU.set_silent_mode(False)
+        Vosproizvedenie_RU.speak('обычный режим возвращен')
+        print("🔔 Обычный режим возвращен. Звук включен.")

@@ -34,6 +34,11 @@ def start_speech_recognition(text_queue):
                            channels=1, callback=callback):
         print("🎙️ Поток распознавания речи запущен")
 
+        rec_ru.SetResultWithWords(True)
+        rec_en.SetResultWithWords(True)
+        print(rec_ru, 'rec_ru')
+        print(rec_en, 'rec_en')
+
         while True:
             data = audio_queue.get()
 

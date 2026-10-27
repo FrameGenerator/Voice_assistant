@@ -20,7 +20,7 @@ command_dict = {
     'press': lambda txt: Phrase_to_cmd.button(txt),
     'translate': lambda txt: Phrase_to_cmd.translate(txt, text_queue),
     'sound_level': lambda txt: Phrase_to_cmd.sound_volume(txt),
-    'silent_mode': lambda txt: Vosproizvedenie_RU.for_silent_mode(),
+    'silent_mode': lambda txt: Phrase_to_cmd.manage_silent_mode(txt),
     'coin': lambda txt: Phrase_to_cmd.coin(txt),
     'calculator': lambda txt: Phrase_to_cmd.calculator(txt)
 }
