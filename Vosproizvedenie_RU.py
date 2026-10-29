@@ -22,15 +22,17 @@ def set_silent_mode(state: bool):
 
 
 def speak(text):
+    global is_speaking
     if silent_mode:
         return
-    text = ' '.join(['ссемь' if i == 'семь' else i for i in text.split()])
-    print(text)
-    audio = model.apply_tts(text=text + '!',
-                            speaker=speaker,
-                            sample_rate=sample_rate,
-                            put_accent=True,
-                            put_yo=True)
-    sd.play(audio, sample_rate)
-    time.sleep(len(audio) / sample_rate)
-    sd.stop()
+
+    is_speaking = True  # Поднимаем флаг: ассистент начал говорить
+    try:
+        text = ' '.join(['ссемь' if i == 'семь' else i for i in text.split()])
+        print(text)
+        audio = model.apply_tts(text=text + '!', speaker=speaker, sample_rate=sample_rate, put_accent=True, put_yo=True)
+        sd.play(audio, sample_rate)
+        time.sleep(len(audio) / sample_rate)
+        sd.stop()
+    finally:
+        is_speaking = False

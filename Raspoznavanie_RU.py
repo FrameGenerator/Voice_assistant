@@ -5,6 +5,19 @@ import os
 import vosk
 import sounddevice as sd
 import time
+import Vosproizvedenie_RU
+import Vosproizvedenie_EN
+
+
+def callback(indata, frames, time_info, status):
+    if status:
+        print(status, file=sys.stderr)
+
+    if Vosproizvedenie_RU.is_speaking or Vosproizvedenie_EN.is_speaking:
+        return
+
+    audio_queue.put(bytes(indata))
+
 
 if os.path.exists('model_small_en') and os.path.exists('model_small'):
     model_ru = vosk.Model('model_small')
@@ -18,13 +31,6 @@ current_language = 'ru'
 
 pending_ru = {"text": "", "conf": 0.0, "timestamp": 0.0}
 pending_en = {"text": "", "conf": 0.0, "timestamp": 0.0}
-
-
-def callback(indata, frames, time, status):
-    if status:
-        print(status, file=sys.stderr)
-
-    audio_queue.put(bytes(indata))
 
 
 def start_speech_recognition(text_queue):
@@ -49,8 +55,8 @@ def start_speech_recognition(text_queue):
                 en_ready = rec_en.AcceptWaveform(data)
 
                 current_time = time.time()
+                any_model_ready = False
 
-                # 1. Сохраняем русский результат, если он готов
                 if ru_ready:
                     res_ru = json.loads(rec_ru.Result())
                     text_ru = res_ru.get('text', '').strip()
@@ -59,8 +65,8 @@ def start_speech_recognition(text_queue):
 
                     if len(text_ru) > 3 and conf_ru > 0.6:
                         pending_ru = {"text": text_ru, "conf": conf_ru, "timestamp": current_time}
+                        any_model_ready = True
 
-                # 2. Сохраняем английский результат, if готов
                 if en_ready:
                     res_en = json.loads(rec_en.Result())
                     text_en = res_en.get('text', '').strip()
@@ -69,33 +75,32 @@ def start_speech_recognition(text_queue):
 
                     if len(text_en) > 3 and conf_en > 0.6:
                         pending_en = {"text": text_en, "conf": conf_en, "timestamp": current_time}
+                        any_model_ready = True
 
-                # 3. Принятие решения по временному окну (0.3 секунды)
-                # Если в одном из буферов есть фраза, проверяем, не пора ли сделать выбор
-                if pending_ru["text"] or pending_en["text"]:
+                if any_model_ready or pending_ru["text"] or pending_en["text"]:
 
-                    # Случай А: Обе модели выдали текст в пределах окна 0.3 сек
                     if pending_ru["text"] and pending_en["text"]:
+                        print("[Синхро-выбор] Сработали обе модели. Сравниваем уверенность...")
                         if pending_ru["conf"] >= pending_en["conf"]:
                             print(f"[Vosk | AUTO-RU] {pending_ru['text']} (conf: {pending_ru['conf']:.2f})")
-                            text_queue.put(pending_ru["text"])
+                            text_queue.put(f"ru:{pending_ru['text']}")
                         else:
                             print(f"[Vosk | AUTO-EN] {pending_en['text']} (conf: {pending_en['conf']:.2f})")
-                            text_queue.put(pending_en["text"])
-                        # Очищаем оба буфера
+                            text_queue.put(f"en:{pending_en['text']}")
+
                         pending_ru = {"text": "", "conf": 0.0, "timestamp": 0.0}
                         pending_en = {"text": "", "conf": 0.0, "timestamp": 0.0}
 
-                    # Случай Б: Есть только РУ фразa, и окно ожидания ЕН фразa (0.3 сек) вышло
-                    elif pending_ru["text"] and (current_time - pending_ru["timestamp"] > 0.3):
+                    elif pending_ru["text"] and (current_time - pending_ru["timestamp"] > 0.35):
+                        print('[Одиночный выбор] timeout en -> только ru')
                         print(f"[Vosk | AUTO-RU] {pending_ru['text']} (conf: {pending_ru['conf']:.2f})")
-                        text_queue.put(pending_ru["text"])
+                        text_queue.put(f"ru:{pending_ru['text']}")
                         pending_ru = {"text": "", "conf": 0.0, "timestamp": 0.0}
 
-                    # Случай В: Есть только ЕН фразa, и окно ожидания РУ фразa вышло
-                    elif pending_en["text"] and (current_time - pending_en["timestamp"] > 0.3):
+                    elif pending_en["text"] and (current_time - pending_en["timestamp"] > 0.35):
+                        print('[Одиночный выбор] timeout ru -> только en')
                         print(f"[Vosk | AUTO-EN] {pending_en['text']} (conf: {pending_en['conf']:.2f})")
-                        text_queue.put(pending_en["text"])
+                        text_queue.put(f"en:{pending_en['text']}")
                         pending_en = {"text": "", "conf": 0.0, "timestamp": 0.0}
 
                 continue

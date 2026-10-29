@@ -235,11 +235,7 @@ def for_calculator(text):
     if text == 'all':
         return set().union(*DATA_SYMBOLS.values())
 
-    user_words = set(text.lower().strip().split())
-    for symb, words_set in DATA_SYMBOLS.items():
-        if user_words & words_set:
-            return symb
-    return None
+    return get_cmd(text, DATA_SYMBOLS)
 
 
 def for_silent_mode_direction(text):
