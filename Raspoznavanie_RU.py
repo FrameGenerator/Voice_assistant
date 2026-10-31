@@ -23,7 +23,8 @@ if os.path.exists('model_small_en') and os.path.exists('model_small'):
     model_ru = vosk.Model('model_small')
     model_en = vosk.Model('model_small_en')
 else:
-    print('Нет необходимых моделей распознавания')
+    print('❌ Ошибка: Отсутствуют папки моделей "model_small" или "model_small_en"!')
+    sys.exit(1)
 
 samplerate = 16000
 audio_queue = queue.Queue()

@@ -298,56 +298,44 @@ def button(text_for):
 
 
 def translate(text_for, main_queue):
-    """Входит в режим перевода"""
+    """Входит в режим автоматического двуязычного перевода."""
     Vosproizvedenie_RU.speak('включаю автоматический двойной перевод')
     Raspoznavanie_RU.current_language = 'both'
 
     while True:
         raw_msg = main_queue.get().strip()
 
-        # Проверяем команду выхода (с учетом префикса)
-        # Отрезаем префикс "ru:" или "en:" для проверки слова
-        msg_clean = raw_msg[3:].lower().strip() if (
-                    raw_msg.startswith('ru:') or raw_msg.startswith('en:')) else raw_msg.lower().strip()
+        is_ru = raw_msg.startswith('ru:')
+        is_en = raw_msg.startswith('en:')
 
-        if msg_clean in ['выйти', 'выйди', 'стоп', 'понятно', 'ясно', 'exit', 'out', 'okay', 'выход', 'нормальный',
-                         'обычный режим']:
+        # Защита: отрезаем префикс только если он есть
+        msg_clean = raw_msg[3:].strip() if (is_ru or is_en) else raw_msg.strip()
+
+        # Проверка выхода через ядро Phrase.py
+        if Phrase.for_translate(msg_clean) == 'out':
             break
 
-        # Если фраза слишком короткая, пропускаем (дополнительная защита)
         if len(msg_clean) <= 3:
             continue
 
         try:
-            # Извлекаем точный язык, определенный Vosk'ом
-            if raw_msg.startswith('ru:'):
-                msg = raw_msg[3:]
-                temp = translator.translate(msg, src='ru', dest='en')
+            if is_ru:
+                temp = translator.translate(msg_clean, src='ru', dest='en')
                 print(f"[Перевод] RU -> EN: {temp.text}")
                 Vosproizvedenie_EN.speak(temp.text)
 
-            elif raw_msg.startswith('en:'):
-                msg = raw_msg[3:]
-                temp = translator.translate(msg, src='en', dest='ru')
+            elif is_en:
+                temp = translator.translate(msg_clean, src='en', dest='ru')
                 print(f"[Перевод] EN -> RU: {temp.text}")
                 Vosproizvedenie_RU.speak(temp.text)
-
-            else:
-                # На случай, если префикса не оказалось (базовый режим)
-                detected = translator.detect(raw_msg).lang
-                if detected == 'ru':
-                    temp = translator.translate(raw_msg, src='ru', dest='en')
-                    Vosproizvedenie_EN.speak(temp.text)
-                else:
-                    temp = translator.translate(raw_msg, src='en', dest='ru')
-                    Vosproizvedenie_RU.speak(temp.text)
 
         except Exception as e:
             print(f"Ошибка API Переводчика: {e}")
 
+    # Блок выхода из режима
     Raspoznavanie_RU.current_language = 'ru'
 
-    # Очистка очереди от остаточных фраз, накопившихся во время говорения
+    # Очищаем "хвосты" из очереди, накопленные за время говорения TTS
     while not main_queue.empty():
         try:
             main_queue.get_nowait()
